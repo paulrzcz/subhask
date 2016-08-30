@@ -455,4 +455,3 @@ class Concrete cat => Provable cat where
 type family ProofOf_ cat a where
     ProofOf_ Hask a = a
     ProofOf_ cat  a = ProofOf cat a
-

@@ -3,13 +3,13 @@
 module SubHask.TemplateHaskell.Test
     where
 
-import Prelude
-import Control.Monad
+import           Control.Monad
+import           Prelude
 
-import qualified Data.Map as Map
+import qualified Data.Map                         as Map
 
-import Language.Haskell.TH
-import SubHask.TemplateHaskell.Deriving
+import           Language.Haskell.TH
+import           SubHask.TemplateHaskell.Deriving
 
 -- | Ideally, this map would be generated automatically via template haskell.
 -- Due to bug <https://ghc.haskell.org/trac/ghc/ticket/9699 #9699>, however, we must enter these manually.
@@ -227,7 +227,7 @@ mkClassTests className = do
         ( typeTests )
     where
         go [] = return $ ConE $ mkName "[]"
-        go ((InstanceD _ (AppT _ t) _):xs) = case t of
+        go ((InstanceD _ _ (AppT _ t) _):xs) = case t of
             (ConT a) -> do
                 tests <- mkSpecializedClassTest (ConT a) className
                 next <- go xs
@@ -290,7 +290,7 @@ specializeLaw
 specializeLaw typeName lawName = do
     lawInfo <- reify lawName
     let newType = case lawInfo of
-            VarI _ t _ _ -> specializeType t typeName
+            VarI _ t _ -> specializeType t typeName
             _ -> error "mkTest lawName not a function"
     return $ SigE (VarE lawName) newType
 
@@ -333,4 +333,3 @@ listExp2Exp (x:xs) = AppE
 -- > test
 extractTestStr :: Name -> String
 extractTestStr name = nameBase name
-

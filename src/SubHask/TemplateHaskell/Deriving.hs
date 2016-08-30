@@ -28,14 +28,14 @@ module SubHask.TemplateHaskell.Deriving
     )
     where
 
-import SubHask.Internal.Prelude
-import SubHask.TemplateHaskell.Common
-import SubHask.TemplateHaskell.Mutable
-import Prelude
-import Data.List (nub)
+import           Data.List                       (nub)
+import           Prelude
+import           SubHask.Internal.Prelude
+import           SubHask.TemplateHaskell.Common
+import           SubHask.TemplateHaskell.Mutable
 
-import Language.Haskell.TH.Syntax
-import Control.Monad
+import           Control.Monad
+import           Language.Haskell.TH.Syntax
 
 
 -- | This class provides an artificial hierarchy that defines all the classes that a "well behaved" data type should implement.
@@ -93,8 +93,8 @@ deriveTypefamilies :: [Name] -> Name -> Q [Dec]
 deriveTypefamilies familynameL typename = do
     info <- reify typename
     let (tyvarbndr,tyvar) = case info of
-            TyConI (NewtypeD _ _ xs (NormalC _ [(  _,t)]) _) -> (xs,t)
-            TyConI (NewtypeD _ _ xs (RecC    _ [(_,_,t)]) _) -> (xs,t)
+            TyConI (NewtypeD _ _ xs _ (NormalC _ [(  _,t)]) _) -> (xs,t)
+            TyConI (NewtypeD _ _ xs _ (RecC    _ [(_,_,t)]) _) -> (xs,t)
     return $ map (go tyvarbndr tyvar) familynameL
     where
         go tyvarbndr tyvar familyname = TySynInstD familyname $ TySynEqn
@@ -122,10 +122,10 @@ deriveSingleInstance typename classname = if show classname == "SubHask.Mutable.
     else do
         typeinfo <- reify typename
         (conname,typekind,typeapp) <- case typeinfo of
-            TyConI (NewtypeD [] _ typekind (NormalC conname [(  _,typeapp)]) _)
+            TyConI (NewtypeD [] _ typekind _ (NormalC conname [(  _,typeapp)]) _)
                 -> return (conname,typekind,typeapp)
 
-            TyConI (NewtypeD [] _ typekind (RecC    conname [(_,_,typeapp)]) _)
+            TyConI (NewtypeD [] _ typekind _ (RecC    conname [(_,_,typeapp)]) _)
                 -> return (conname,typekind,typeapp)
 
             _ -> error $ "\nderiveSingleInstance; typeinfo="++show typeinfo
@@ -145,8 +145,8 @@ deriveSingleInstance typename classname = if show classname == "SubHask.Mutable.
             -- then don't create an overlapping instance
             -- These classes only exist because TH has problems with type families
             -- FIXME: this is probably not a robust solution
-            ClassI (ClassD _ _ _ _ _) [InstanceD _ (VarT _) _] -> return []
-            ClassI (ClassD _ _ _ _ _) [InstanceD _ (AppT (ConT _) (VarT _)) _] -> return []
+            ClassI (ClassD _ _ _ _ _) [InstanceD Nothing _ (VarT _) _] -> return []
+            ClassI (ClassD _ _ _ _ _) [InstanceD Nothing _ (AppT (ConT _) (VarT _)) _] -> return []
 
             -- otherwise, create the instance
             ClassI (ClassD ctx _ [bndr] [] decs) _ -> do
@@ -179,7 +179,7 @@ deriveSingleInstance typename classname = if show classname == "SubHask.Mutable.
                                 , PragmaD $ InlineP f Inline FunLike AllPhases
                                 ]
 
-                        return [ InstanceD
+                        return [ InstanceD Nothing
                                 ( AppT (ConT classname) typeapp : map (substitutePat varname typeapp) ctx )
                                 ( AppT (ConT classname) $ apply2varlist (ConT typename) typekind )
                                 ( concat funcL )
@@ -235,9 +235,10 @@ returnType2newtypeApplicator conname varname t exp' = do
             info <- reify c
             case info of
                 TyConI (TySynD _ _ _) -> expandTySyn t >>= go
-                FamilyI (FamilyD TypeFam _ _ _) _ -> id'
-                TyConI (NewtypeD _ _ _ _ _) -> liftM (AppE (VarE $ mkName "helper_liftM")) $ go t2
-                TyConI (DataD _ _ _ _ _) -> liftM (AppE (VarE $ mkName "helper_liftM")) $ go t2
+                FamilyI (ClosedTypeFamilyD _ _) _ -> id'
+                FamilyI (OpenTypeFamilyD _) _ -> id'
+                TyConI (NewtypeD _ _ _ _ _ _) -> liftM (AppE (VarE $ mkName "helper_liftM")) $ go t2
+                TyConI (DataD _ _ _ _ _ _) -> liftM (AppE (VarE $ mkName "helper_liftM")) $ go t2
                 qqq -> error $ "returnType2newtypeApplicator: qqq="++show qqq
 
         go (AppT ListT t2) = liftM (AppE (VarE $ mkName "helper_liftM")) $ go t2
@@ -264,7 +265,7 @@ isNewtypeInstance typename classname = do
     case info of
         ClassI _ inst -> return $ or $ map go inst
     where
-        go (InstanceD _ (AppT _ (AppT (ConT n) _)) _) = n==typename
+        go (InstanceD _ _ (AppT _ (AppT (ConT n) _)) _) = n==typename
         go _ = False
 
 
@@ -317,6 +318,7 @@ fromPreludeEq qt = do
             ( mkName "Logic" )
             ( TySynEqn [t] (ConT $ mkName "Bool" ))
         , InstanceD
+            Nothing
             []
             ( AppT ( ConT $ mkName "Eq_" ) t )
             [ FunD

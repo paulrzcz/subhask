@@ -1,10 +1,9 @@
 {-# LANGUAGE NoAutoDeriveTypeable #-} -- can't derive typeable of data families
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns #-}
-
+{-# LANGUAGE ExplicitNamespaces #-}
 -- | This module defines the subtyping mechanisms used in subhask.
 module SubHask.SubType
-    ( (<:) (..)
-    , Sup
+    ( Sup
+    , type (<:) (..)
 
     -- **
     , Embed (..)
@@ -51,7 +50,7 @@ instance Sup s s s
 -- The "embedType" function must be s homomorphism from s to t.
 --
 -- class (Sup s t t, Sup t s t) => (s :: k) <: (t :: k) where
-class (s :: k) <: (t :: k) where
+class (<:) (s :: k) (t :: k) where
     embedType_ :: Embed s t -- a b
 
 
@@ -174,6 +173,7 @@ stripForall (AppT t1 t2) = AppT (stripForall t1) (stripForall t2)
 -- FIXME: What if the type doesn't have kind *?
 mkSubtypeInstance :: Type -> Type -> Name -> Dec
 mkSubtypeInstance t1 t2 f = InstanceD
+    Nothing
     []
     ( AppT
         ( AppT
@@ -205,6 +205,6 @@ mkSubtypeInstance t1 t2 f = InstanceD
 --
 mkSup :: Type -> Type -> Type -> [Dec]
 mkSup t1 t2 t3 =
-    [ InstanceD [] (AppT (AppT (AppT (ConT $ mkName "Sup") t1) t2) t3) []
-    , InstanceD [] (AppT (AppT (AppT (ConT $ mkName "Sup") t2) t1) t3) []
+    [ InstanceD Nothing [] (AppT (AppT (AppT (ConT $ mkName "Sup") t1) t2) t3) []
+    , InstanceD Nothing [] (AppT (AppT (AppT (ConT $ mkName "Sup") t2) t1) t3) []
     ]

@@ -1,5 +1,4 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
-{-# OPTIONS_GHC -fno-warn-auto-orphans #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- | Importing this module will activate RULES that use the FFI for vector ops.
