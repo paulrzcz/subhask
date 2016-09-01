@@ -9,9 +9,9 @@ module SubHask
     , module SubHask.SubType
     ) where
 
-import SubHask.Algebra
-import SubHask.Category
-import SubHask.Compatibility.Base()
-import SubHask.Internal.Prelude
-import SubHask.Monad
-import SubHask.SubType
+import           SubHask.Algebra
+import           SubHask.Category
+import           SubHask.Compatibility.Base ()
+import           SubHask.Internal.Prelude
+import           SubHask.Monad
+import           SubHask.SubType

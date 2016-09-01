@@ -339,4 +339,3 @@ instance (SimpleContainerLogic a, Eq_ a, Lattice_ (Elem a), Foldable a) => Latti
             go (x:xs) (y:ys) = sup x y:go xs ys
             go xs [] = xs
             go [] ys = ys
-

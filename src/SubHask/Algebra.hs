@@ -298,7 +298,7 @@ import Test.QuickCheck (frequency)
 import Control.Parallel.Strategies
 
 import GHC.Prim hiding (Any)
-import GHC.Types
+import GHC.Types hiding (Module)
 
 import SubHask.Internal.Prelude
 import SubHask.Category
@@ -463,7 +463,7 @@ instance POrd_ b => POrd_ (a -> b) where
     {-# INLINE inf #-}
     inf f g = \x -> inf (f x) (g x)
 
-    {-# INLINE (<) #-}
+    {-# INLINE (<=) #-}
     (f<=g) a = f a <= g a
 
 -------------------
@@ -1561,7 +1561,7 @@ mkField(Double)
 mkField(Rational)
 
 instance Field b => Field (a -> b) where
-    {-# INLINE fromRational #-}
+    {-# INLINE reciprocal #-}
     reciprocal f = reciprocal . f
 
 ----------------------------------------
@@ -3189,4 +3189,3 @@ mkMutable [t| forall a. DualSG a |]
 mkMutable [t| forall a. Maybe a |]
 mkMutable [t| forall a. Maybe' a |]
 mkMutable [t| forall a b. Labeled' a b |]
-

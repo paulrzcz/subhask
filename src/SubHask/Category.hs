@@ -1,4 +1,5 @@
 {-# LANGUAGE NoAutoDeriveTypeable #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 {-# OPTIONS_GHC -fno-warn-unused-binds #-}
 
 -- | SubHask supports two ways to encode categories in Haskell.
@@ -87,6 +88,7 @@ module SubHask.Category
     ) where
 
 import GHC.Exts
+import Data.Kind
 import SubHask.Internal.Prelude
 import SubHask.SubType
 import qualified Prelude as P
@@ -105,7 +107,7 @@ import qualified Prelude as P
 -- More details available at <http://en.wikipedia.org/wiki/Subcategory wikipedia>
 -- and <http://ncatlab.org/nlab/show/subcategory ncatlab>.
 
-class Category (cat :: k -> k -> *) where
+class Category (cat :: k -> k -> Type) where
 
     type ValidCategory cat (a::k) :: Constraint
     id :: ValidCategory cat a => cat a a
@@ -127,7 +129,7 @@ a <<< b = a.b
 type Hask = (->)
 
 instance Category (->) where
-    type ValidCategory (->) (a :: *) = ()
+    type ValidCategory (->) (a :: Type) = ()
     id = P.id
 
     {-# NOINLINE (.) #-}
@@ -146,11 +148,11 @@ instance Category (->) where
 type Cat cat1 cat2 = forall a b. CatT (->) a b cat1 cat2
 
 data CatT
-    ( cat :: * -> * -> *)
+    ( cat :: Type -> Type -> Type)
     ( a :: k )
     ( b :: k )
-    ( cat1 :: k -> k -> * )
-    ( cat2 :: k -> k -> * )
+    ( cat1 :: k -> k -> Type )
+    ( cat2 :: k -> k -> Type )
     = CatT (cat1 a b `cat` cat2 a b)
 
 instance Category cat => Category (CatT cat a b) where
@@ -253,25 +255,25 @@ embed2 _ = undefined
 --
 -- More details available at <http://en.wikipedia.org/wiki/Monoidal_category wikipedia>
 class
-    ( Category cat
+    ( Category (cat :: Type -> Type -> Type)
     , ValidCategory cat (TUnit cat)
     ) => Monoidal cat
         where
 
-    type Tensor cat :: k -> k -> k
+    type Tensor cat :: Type -> Type -> Type
     tensor ::
         ( ValidCategory cat a
         , ValidCategory cat b
         ) => cat a (cat b (Tensor cat a b))
 
-    type TUnit cat :: k
+    type TUnit cat :: Type
     tunit :: proxy cat -> TUnit cat
 
 instance Monoidal (->) where
     type Tensor (->) = (,)
     tensor = \a b -> (a,b)
 
-    type TUnit (->) = (() :: *)
+    type TUnit (->) = (() :: Type)
     tunit _ = ()
 
 -- | This is a convenient and (hopefully) suggestive shortcut for constructing
@@ -357,7 +359,7 @@ const2 ::
     ) => a -> b -> cat b a
 const2 a b = initial a . terminal b
 
-instance Cartesian ((->) :: * -> * -> *) where
+instance Cartesian ((->) :: Type -> Type -> Type) where
     fst_ (a,_) = a
     snd_ (_,b) = b
     terminal _ _ = ()
@@ -427,7 +429,7 @@ class Category cat => Dagger cat where
 -- We're travelling in the opposite direction of the subtyping mechanism.
 -- That's valid only in a small number of cases.
 -- These proofs give a type safe way to capture some (but not all) of those cases.
-data family ProofOf (cat :: k -> k -> *) a
+data family ProofOf (cat :: k -> k -> Type) a
 
 newtype instance ProofOf Hask a = ProofOf { unProofOfHask :: a }
 
